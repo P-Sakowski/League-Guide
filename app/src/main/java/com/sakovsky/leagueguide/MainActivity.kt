@@ -3,19 +3,33 @@ package com.sakovsky.leagueguide
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.Image
+import androidx.activity.viewModels
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -27,17 +41,20 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.imageResource
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.sakovsky.leagueguide.repository.Champion
 import com.sakovsky.leagueguide.ui.theme.LeagueGuideTheme
 
 class MainActivity : ComponentActivity() {
+    private val viewModel: MainViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        viewModel.getData()
+
         setContent {
             LeagueGuideTheme {
                 // A surface container using the 'background' color from the theme
@@ -45,7 +62,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Greeting("Android")
+                    MainView(viewModel)
                 }
             }
         }
@@ -53,19 +70,105 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
+fun MainView(viewModel: MainViewModel) {
+    val uiState by viewModel.immutableChampions.observeAsState(UiState())
+
     Row(
         modifier = Modifier
             .background(Color.Black)
     )
     {
-        Image(
-            painter = painterResource(id = R.drawable.aatrox_0),
-            contentDescription = "Aatrox"
+        when {
+            uiState.isLoading -> { MyLoadingView() }
+
+            uiState.error != null -> { MyErrorView(uiState.error.toString()) }
+
+            uiState.values != null -> {
+                LazyColumn {
+                    items(uiState.values!!) { champion ->
+                        ChampionView(champion = champion)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun MyErrorView(errorMessage: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Default.Warning,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.error
         )
-        Column{
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Error",
+            color = MaterialTheme.colorScheme.error
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = errorMessage,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+    }
+}
+
+@Composable
+fun MyLoadingView()  {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .size(50.dp)
+                    .padding(16.dp),
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+@Composable
+fun ChampionView(champion: Champion, modifier: Modifier = Modifier) {
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Black)
+            .border(width = 5.dp, Color.Black)
+    )
+    {
+        AsyncImage(
+            model = "https://ddragon.leagueoflegends.com/cdn/img/champion/loading/" + champion.id + "_0.jpg",
+            contentDescription = champion.name,
+        )
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = modifier
+                .padding(start = 10.dp)
+        ){
             Text(
-                text = name,
+                text = champion.name,
                 color = Color.LightGray,
                 fontSize = 25.sp,
                 textAlign = TextAlign.Center,
@@ -73,7 +176,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     .padding(horizontal = 15.dp)
             )
             Text(
-                text = "the Darkin Blade",
+                text = champion.title,
                 color = Color.LightGray,
                 fontSize = 10.sp,
                 textAlign = TextAlign.Center,
@@ -89,7 +192,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     .padding(start = 5.dp)
             )
             RatingBar(
-                rating = 4.0f,
+                rating = champion.info.attack/2.0f,
                 spaceBetween = 3.dp,
                 modifier = Modifier
                     .padding(start = 10.dp)
@@ -102,10 +205,10 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     .padding(start = 5.dp)
             )
             RatingBar(
-                rating = 2.0f,
+                rating = champion.info.defense/2.0f,
                 spaceBetween = 3.dp,
                 modifier = Modifier
-                        .padding(start = 10.dp)
+                    .padding(start = 10.dp)
             )
             Text(
                 text = "Magic",
@@ -115,7 +218,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     .padding(start = 5.dp)
             )
             RatingBar(
-                rating = 1.5f,
+                rating = champion.info.magic/2.0f,
                 spaceBetween = 3.dp,
                 modifier = Modifier
                     .padding(start = 10.dp)
@@ -128,20 +231,12 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     .padding(start = 5.dp)
             )
             RatingBar(
-                rating = 2.0f,
+                rating = champion.info.difficulty/2.0f,
                 spaceBetween = 3.dp,
                 modifier = Modifier
                     .padding(start = 10.dp)
             )
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    LeagueGuideTheme {
-        Greeting("Aatrox")
     }
 }
 
