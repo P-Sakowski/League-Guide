@@ -5,9 +5,13 @@ import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
+import retrofit2.http.Path
+
 interface ChampionService {
     @GET("champion.json")
     suspend fun getChampions(): Response<ChampionResponse>
+    @GET("champion/{id}.json")
+    suspend fun getChampionDetails(@Path("id") id: String): Response<ChampionDetailResponse>
     companion object {
         private const val RIOT_API_URL = "https://ddragon.leagueoflegends.com/cdn/13.24.1/data/en_US/"
 

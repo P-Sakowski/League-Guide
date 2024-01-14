@@ -1,11 +1,13 @@
 package com.sakovsky.leagueguide
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,15 +64,23 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainView(viewModel)
+                    MainView(
+                        viewModel = viewModel,
+                        onClick = { id -> navigateToDetails(id) })
                 }
             }
         }
     }
+
+    private fun navigateToDetails(id: String) {
+        val intent = Intent(this, DetailsActivity::class.java)
+        intent.putExtra("ID", id)
+        startActivity(intent)
+    }
 }
 
 @Composable
-fun MainView(viewModel: MainViewModel) {
+fun MainView(viewModel: MainViewModel, onClick: (String) -> Unit) {
     val uiState by viewModel.immutableChampions.observeAsState(UiState())
 
     Row(
@@ -86,7 +96,9 @@ fun MainView(viewModel: MainViewModel) {
             uiState.values != null -> {
                 LazyColumn {
                     items(uiState.values!!) { champion ->
-                        ChampionView(champion = champion)
+                        ChampionView(
+                            champion = champion,
+                            onClick = { id -> onClick.invoke(id) })
                     }
                 }
             }
@@ -148,24 +160,27 @@ fun MyLoadingView()  {
 }
 
 @Composable
-fun ChampionView(champion: Champion, modifier: Modifier = Modifier) {
+fun ChampionView(champion: Champion, onClick: (String) -> Unit, modifier: Modifier = Modifier) {
     Row(
         horizontalArrangement = Arrangement.Center,
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.Black)
             .border(width = 5.dp, Color.Black)
+            .clickable { onClick.invoke(champion.id) }
     )
     {
         AsyncImage(
             model = "https://ddragon.leagueoflegends.com/cdn/img/champion/loading/" + champion.id + "_0.jpg",
             contentDescription = champion.name,
+            modifier = Modifier
+                .weight(1f)
         )
         Column(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = modifier
-                .padding(start = 10.dp)
+            modifier = Modifier
+                .weight(1f)
         ){
             Text(
                 text = champion.name,
@@ -173,7 +188,7 @@ fun ChampionView(champion: Champion, modifier: Modifier = Modifier) {
                 fontSize = 25.sp,
                 textAlign = TextAlign.Center,
                 modifier = modifier
-                    .padding(horizontal = 15.dp)
+                    .fillMaxWidth()
             )
             Text(
                 text = champion.title,
@@ -181,7 +196,7 @@ fun ChampionView(champion: Champion, modifier: Modifier = Modifier) {
                 fontSize = 10.sp,
                 textAlign = TextAlign.Center,
                 modifier = modifier
-                    .padding(horizontal = 15.dp)
+                    .fillMaxWidth()
             )
             Text(
                 text = "Attack",
@@ -189,52 +204,37 @@ fun ChampionView(champion: Champion, modifier: Modifier = Modifier) {
                 fontSize = 13.sp,
                 modifier = modifier
                     .padding(top = 10.dp)
-                    .padding(start = 5.dp)
             )
             RatingBar(
                 rating = champion.info.attack/2.0f,
-                spaceBetween = 3.dp,
-                modifier = Modifier
-                    .padding(start = 10.dp)
+                spaceBetween = 3.dp
             )
             Text(
                 text = "Defense",
                 color = Color.LightGray,
-                fontSize = 13.sp,
-                modifier = modifier
-                    .padding(start = 5.dp)
+                fontSize = 13.sp
             )
             RatingBar(
                 rating = champion.info.defense/2.0f,
-                spaceBetween = 3.dp,
-                modifier = Modifier
-                    .padding(start = 10.dp)
+                spaceBetween = 3.dp
             )
             Text(
                 text = "Magic",
                 color = Color.LightGray,
-                fontSize = 13.sp,
-                modifier = modifier
-                    .padding(start = 5.dp)
+                fontSize = 13.sp
             )
             RatingBar(
                 rating = champion.info.magic/2.0f,
-                spaceBetween = 3.dp,
-                modifier = Modifier
-                    .padding(start = 10.dp)
+                spaceBetween = 3.dp
             )
             Text(
                 text = "Difficulty",
                 color = Color.LightGray,
-                fontSize = 13.sp,
-                modifier = modifier
-                    .padding(start = 5.dp)
+                fontSize = 13.sp
             )
             RatingBar(
                 rating = champion.info.difficulty/2.0f,
-                spaceBetween = 3.dp,
-                modifier = Modifier
-                    .padding(start = 10.dp)
+                spaceBetween = 3.dp
             )
         }
     }
